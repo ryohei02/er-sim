@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(New-Item *)"
+      "Bash(New-Item *)",
+      "Bash(npm run *)"
     ]
   }
 }

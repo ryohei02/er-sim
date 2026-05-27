@@ -11,6 +11,13 @@ export type ChiefComplaint =
   | "動悸"
   | "失神"
   | "耳鼻科救急"
+  | "腰背部痛"
+  | "麻痺・しびれ"
+  | "浮腫"
+  | "嘔吐・下痢"
+  | "痙攣"
+  | "皮疹"
+  | "精神科的主訴"
   | "その他";
 
 export type EmergencyCase = {
