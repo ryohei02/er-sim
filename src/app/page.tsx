@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { emergencyCases } from "@/data/emergencyCases";
 import { generateCaseWithAI } from "@/lib/ai/generateCase";
 import { saveAIGeneratedCase, getAIGeneratedCases, deleteAIGeneratedCase } from "@/lib/emergencyStorage";
+import { downloadCaseAsText } from "@/lib/downloadCase";
 import type { ChiefComplaint, Difficulty, EmergencyCase } from "@/types/emergency";
 
 const complaints: ChiefComplaint[] = [
@@ -18,24 +19,10 @@ const complaints: ChiefComplaint[] = [
 const difficulties: Difficulty[] = ["初級", "中級", "実戦", "地雷"];
 
 const complaintEmoji: Record<string, string> = {
-  胸痛: "❤️", 腹痛: "🫄", 発熱: "🌡️", 呼吸困難: "🫁", 意識障害: "🧠",
-  頭痛: "💆", めまい: "🌀", 動悸: "💓", 失神: "😵", 耳鼻科救急: "👂",
-  腰背部痛: "🦴", "麻痺・しびれ": "🫀", 浮腫: "💧", "嘔吐・下痢": "🤢",
-  痙攣: "⚡", 皮疹: "🔴", 精神科的主訴: "💭", その他: "📋",
-};
-
-const difficultyColor: Record<string, string> = {
-  初級: "border-green-500 text-green-400 hover:bg-green-900/30",
-  中級: "border-blue-500 text-blue-400 hover:bg-blue-900/30",
-  実戦: "border-orange-500 text-orange-400 hover:bg-orange-900/30",
-  地雷: "border-red-500 text-red-400 hover:bg-red-900/30",
-};
-
-const difficultyActiveColor: Record<string, string> = {
-  初級: "bg-green-800 border-green-400 text-green-100",
-  中級: "bg-blue-800 border-blue-400 text-blue-100",
-  実戦: "bg-orange-800 border-orange-400 text-orange-100",
-  地雷: "bg-red-800 border-red-400 text-red-100",
+  胸痛: "❤️", 腹痛: "🦵", 発熱: "🌡️", 呼吸困難: "🫁", 意識障害: "🧠",
+  頭痛: "😵", めまい: "🌀", 動悸: "💓", 失神: "😵‍💫", 耳鼻科救急: "🟡",
+  腰背部痛: "🔴", "麻痺・しびれ": "🧠", 浮腫: "💧", "嘔吐・下痢": "🤢",
+  痙攣: "⚡", 皮疹: "🔴", 精神科的主訴: "💬", その他: "❓",
 };
 
 const difficultyBadgeColor: Record<string, string> = {
@@ -47,13 +34,12 @@ const difficultyBadgeColor: Record<string, string> = {
 
 export default function TopPage() {
   const router = useRouter();
-  const [selectedDifficulty, setSelectedDifficulty] = useState<Difficulty | null>(null);
-  const [selectedComplaint, setSelectedComplaint] = useState<ChiefComplaint | null>(null);
   const [aiComplaint, setAiComplaint] = useState<ChiefComplaint>("胸痛");
   const [aiDifficulty, setAiDifficulty] = useState<Difficulty>("中級");
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   const [aiCases, setAiCases] = useState<EmergencyCase[]>([]);
+  const [newlyGeneratedCase, setNewlyGeneratedCase] = useState<EmergencyCase | null>(null);
 
   useEffect(() => {
     getAIGeneratedCases()
@@ -64,13 +50,13 @@ export default function TopPage() {
   async function handleGenerateAI() {
     setAiLoading(true);
     setAiError(null);
+    setNewlyGeneratedCase(null);
     try {
       const c = await generateCaseWithAI(aiComplaint, aiDifficulty);
-      console.log("[handleGenerateAI] generated case id:", c.id, "title:", c.title);
       await saveAIGeneratedCase(c);
-      setAiCases(await getAIGeneratedCases());
-      console.log("[handleGenerateAI] pushing to:", `/case/${c.id}`);
-      router.push(`/case/${c.id}`);
+      const updated = await getAIGeneratedCases();
+      setAiCases(updated);
+      setNewlyGeneratedCase(c);
     } catch (e) {
       setAiError(e instanceof Error ? e.message : "生成に失敗しました");
     } finally {
@@ -80,48 +66,16 @@ export default function TopPage() {
 
   async function handleDeleteAICase(id: string) {
     await deleteAIGeneratedCase(id);
+    if (newlyGeneratedCase?.id === id) setNewlyGeneratedCase(null);
     setAiCases(await getAIGeneratedCases());
   }
 
   function startRandom() {
-    let pool = [...emergencyCases, ...aiCases];
-    if (selectedDifficulty) {
-      pool = pool.filter((c) => c.difficulty === selectedDifficulty);
-    }
-    if (selectedComplaint) {
-      const filtered = pool.filter((c) => c.chiefComplaint === selectedComplaint);
-      if (filtered.length > 0) pool = filtered;
-    }
-    if (pool.length === 0) pool = emergencyCases;
+    const pool = [...emergencyCases, ...aiCases];
+    if (pool.length === 0) return;
     const pick = pool[Math.floor(Math.random() * pool.length)];
     router.push(`/case/${pick.id}`);
   }
-
-  function startByComplaint(complaint: ChiefComplaint) {
-    let pool = emergencyCases.filter((c) => c.chiefComplaint === complaint);
-    if (selectedDifficulty) {
-      const filtered = pool.filter((c) => c.difficulty === selectedDifficulty);
-      if (filtered.length > 0) pool = filtered;
-    }
-    if (pool.length === 0) {
-      alert(`「${complaint}」の症例が見つかりません`);
-      return;
-    }
-    const pick = pool[Math.floor(Math.random() * pool.length)];
-    router.push(`/case/${pick.id}`);
-  }
-
-  // merged and sorted case list: presets first, then AI generated
-  const allCases: (EmergencyCase & { isAI: boolean })[] = [
-    ...emergencyCases.map((c) => ({ ...c, isAI: false })),
-    ...aiCases.map((c) => ({ ...c, isAI: true })),
-  ];
-
-  const filteredCases = allCases.filter((c) => {
-    if (selectedComplaint && c.chiefComplaint !== selectedComplaint) return false;
-    if (selectedDifficulty && c.difficulty !== selectedDifficulty) return false;
-    return true;
-  });
 
   return (
     <div className="min-h-screen bg-slate-900">
@@ -156,140 +110,35 @@ export default function TopPage() {
           </p>
         </div>
 
-        {/* Difficulty selector */}
-        <div>
-          <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wide mb-3">
-            難易度選択（任意）
-          </h3>
-          <div className="flex flex-wrap gap-3">
-            {difficulties.map((d) => (
-              <button
-                key={d}
-                onClick={() => setSelectedDifficulty(selectedDifficulty === d ? null : d)}
-                className={`rounded-full border-2 px-4 py-1.5 text-sm font-semibold transition-all ${
-                  selectedDifficulty === d
-                    ? difficultyActiveColor[d]
-                    : difficultyColor[d]
-                }`}
-              >
-                {d}
-              </button>
-            ))}
-            {selectedDifficulty && (
-              <button
-                onClick={() => setSelectedDifficulty(null)}
-                className="rounded-full border border-slate-600 px-3 py-1.5 text-xs text-slate-400 hover:text-slate-200"
-              >
-                クリア
-              </button>
-            )}
-          </div>
-        </div>
-
         {/* Random start */}
         <button
           onClick={startRandom}
           className="w-full rounded-2xl bg-red-600 hover:bg-red-500 active:bg-red-700 transition-colors px-6 py-5 text-xl font-bold text-white shadow-lg shadow-red-900/40"
         >
           ランダム症例を開始
-          {selectedDifficulty && (
-            <span className="ml-2 text-base font-normal opacity-80">
-              — {selectedDifficulty}
-            </span>
-          )}
         </button>
 
-        {/* Chief complaint buttons */}
+        {/* Chief complaint vertical list */}
         <div>
           <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wide mb-3">
-            主訴から始める
+            主訴から選ぶ
           </h3>
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
-            {complaints.map((c) => (
-              <button
-                key={c}
-                onClick={() => startByComplaint(c)}
-                className="rounded-xl border border-slate-600 bg-slate-800 hover:bg-slate-700 hover:border-slate-500 transition-all px-2 py-3 text-xs text-slate-200 font-medium"
-              >
-                <div className="text-2xl mb-1">{complaintEmoji[c] ?? "📋"}</div>
-                {c}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* All cases list with complaint tabs */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wide">
-              全症例一覧
-            </h3>
-            <span className="text-xs text-slate-500">{filteredCases.length}件</span>
-          </div>
-
-          {/* Complaint filter tabs */}
-          <div className="overflow-x-auto pb-2 mb-3">
-            <div className="flex gap-2 min-w-max">
-              <button
-                onClick={() => setSelectedComplaint(null)}
-                className={`rounded-full px-3 py-1 text-xs font-medium transition-all border ${
-                  selectedComplaint === null
-                    ? "bg-slate-600 border-slate-400 text-slate-100"
-                    : "border-slate-600 text-slate-400 hover:text-slate-200"
-                }`}
-              >
-                すべて
-              </button>
-              {complaints.map((c) => {
-                const count = allCases.filter((cas) => cas.chiefComplaint === c).length;
-                if (count === 0) return null;
-                return (
-                  <button
-                    key={c}
-                    onClick={() => setSelectedComplaint(selectedComplaint === c ? null : c)}
-                    className={`rounded-full px-3 py-1 text-xs font-medium transition-all border whitespace-nowrap ${
-                      selectedComplaint === c
-                        ? "bg-slate-600 border-slate-400 text-slate-100"
-                        : "border-slate-600 text-slate-400 hover:text-slate-200"
-                    }`}
-                  >
-                    {complaintEmoji[c] ?? "📋"} {c}
-                    <span className="ml-1 opacity-60">({count})</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            {filteredCases.length === 0 ? (
-              <p className="text-slate-500 text-sm text-center py-8">該当する症例がありません</p>
-            ) : (
-              filteredCases.map((c) => (
-                <Link key={c.id} href={`/case/${c.id}`}>
-                  <div className="flex items-center gap-3 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 transition-all px-4 py-3">
-                    <span className="text-xl">{complaintEmoji[c.chiefComplaint] ?? "📋"}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-sm font-medium text-slate-200 truncate">{c.title}</span>
-                        {c.isAI ? (
-                          <span className="text-xs rounded-full px-1.5 py-0.5 bg-purple-900/50 border border-purple-700 text-purple-300 flex-shrink-0">🤖 AI</span>
-                        ) : (
-                          <span className="text-xs rounded-full px-1.5 py-0.5 bg-slate-700/50 border border-slate-600 text-slate-400 flex-shrink-0">📚</span>
-                        )}
-                      </div>
-                      <div className="text-xs text-slate-500 truncate">{c.finalDiagnosis}</div>
-                    </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <span className={`rounded-full text-xs px-2 py-0.5 border ${difficultyBadgeColor[c.difficulty] ?? "border-slate-700 text-slate-400"}`}>
-                        {c.difficulty}
-                      </span>
-                      <span className="text-xs text-slate-500">{c.chiefComplaint}</span>
-                    </div>
-                  </div>
+          <div className="rounded-xl border border-slate-700 overflow-hidden divide-y divide-slate-700/60">
+            {complaints.map((complaint) => {
+              const count = emergencyCases.filter((c) => c.chiefComplaint === complaint).length;
+              return (
+                <Link
+                  key={complaint}
+                  href={`/cases?chief=${encodeURIComponent(complaint)}`}
+                  className="flex items-center px-4 py-4 bg-slate-800 hover:bg-slate-700 transition-colors"
+                >
+                  <span className="text-xl mr-3">{complaintEmoji[complaint] ?? "📋"}</span>
+                  <span className="flex-1 text-sm font-medium text-slate-200">{complaint}</span>
+                  <span className="text-xs text-slate-400 mr-3">プリセット{count}件</span>
+                  <span className="text-slate-500 text-sm">›</span>
                 </Link>
-              ))
-            )}
+              );
+            })}
           </div>
         </div>
 
@@ -335,12 +184,92 @@ export default function TopPage() {
             disabled={aiLoading}
             className="w-full rounded-xl bg-purple-700 hover:bg-purple-600 disabled:bg-slate-700 disabled:text-slate-500 transition-colors px-4 py-3 text-sm font-semibold text-white"
           >
-            {aiLoading ? "生成中..." : "AI症例を生成して開始"}
+            {aiLoading ? "生成中..." : "AI症例を生成する"}
           </button>
           {aiError && (
             <p className="text-xs text-red-400 rounded-lg bg-red-950/30 border border-red-800 px-3 py-2">
               {aiError}
             </p>
+          )}
+
+          {/* Newly generated case actions */}
+          {newlyGeneratedCase && (
+            <div className="rounded-xl border border-purple-600 bg-purple-900/20 p-4 space-y-3">
+              <div>
+                <div className="text-xs text-purple-400 font-semibold mb-1">生成完了</div>
+                <div className="text-sm font-medium text-slate-200">{newlyGeneratedCase.title}</div>
+                <div className="text-xs text-slate-500 mt-0.5">{newlyGeneratedCase.finalDiagnosis}</div>
+              </div>
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={() => router.push(`/case/${newlyGeneratedCase.id}`)}
+                  className="w-full rounded-lg bg-purple-700 hover:bg-purple-600 transition-colors px-4 py-2.5 text-sm font-semibold text-white flex items-center justify-center gap-2"
+                >
+                  <span>▶</span> この症例を始める
+                </button>
+                <button
+                  onClick={() => downloadCaseAsText(newlyGeneratedCase)}
+                  className="w-full rounded-lg border border-blue-600 bg-blue-950/40 hover:bg-blue-950/70 transition-colors px-4 py-2.5 text-sm font-semibold text-blue-300 flex items-center justify-center gap-2"
+                >
+                  <span>📄</span> テキストでダウンロード
+                </button>
+                <button
+                  onClick={() => handleDeleteAICase(newlyGeneratedCase.id)}
+                  className="w-full rounded-lg border border-red-700 bg-red-950/20 hover:bg-red-950/40 transition-colors px-4 py-2.5 text-sm font-semibold text-red-400 flex items-center justify-center gap-2"
+                >
+                  <span>🗑️</span> 削除する
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* AI cases list */}
+          {aiCases.length > 0 && (
+            <div className="space-y-3">
+              <div className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
+                生成済みAI症例（{aiCases.length}件）
+              </div>
+              {aiCases.map((c) => (
+                <div
+                  key={c.id}
+                  className="rounded-xl border border-slate-700 bg-slate-800/60 p-3 space-y-2"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">{complaintEmoji[c.chiefComplaint] ?? "📋"}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-sm font-medium text-slate-200 truncate">{c.title}</span>
+                        <span className="text-xs rounded-full px-1.5 py-0.5 bg-purple-900/50 border border-purple-700 text-purple-300 flex-shrink-0">🤖 AI</span>
+                      </div>
+                      <div className="text-xs text-slate-500 truncate">{c.finalDiagnosis}</div>
+                    </div>
+                    <span className={`rounded-full text-xs px-2 py-0.5 border flex-shrink-0 ${difficultyBadgeColor[c.difficulty] ?? "border-slate-700 text-slate-400"}`}>
+                      {c.difficulty}
+                    </span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => router.push(`/case/${c.id}`)}
+                      className="flex-1 rounded-lg bg-slate-700 hover:bg-slate-600 transition-colors px-3 py-2 text-xs font-semibold text-white flex items-center justify-center gap-1"
+                    >
+                      <span>▶</span> 始める
+                    </button>
+                    <button
+                      onClick={() => downloadCaseAsText(c)}
+                      className="flex-1 rounded-lg border border-blue-700 bg-blue-950/30 hover:bg-blue-950/60 transition-colors px-3 py-2 text-xs font-semibold text-blue-300 flex items-center justify-center gap-1"
+                    >
+                      <span>📄</span> DL
+                    </button>
+                    <button
+                      onClick={() => handleDeleteAICase(c.id)}
+                      className="flex-1 rounded-lg border border-red-800 bg-red-950/20 hover:bg-red-950/40 transition-colors px-3 py-2 text-xs font-semibold text-red-400 flex items-center justify-center gap-1"
+                    >
+                      <span>🗑️</span> 削除
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </div>
 
