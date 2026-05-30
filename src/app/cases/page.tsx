@@ -29,7 +29,16 @@ function CasesContent() {
   const [aiCases, setAiCases] = useState<EmergencyCase[]>([]);
 
   useEffect(() => {
-    getAIGeneratedCases().then(setAiCases).catch(console.error);
+    console.log("[CasesPage] fetching AI cases, chief:", chief);
+    getAIGeneratedCases()
+      .then((cases) => {
+        console.log(
+          "[CasesPage] AI cases fetched:", cases.length,
+          "chiefComplaints:", cases.map((c) => c.chiefComplaint)
+        );
+        setAiCases(cases);
+      })
+      .catch(console.error);
   }, []);
 
   const presetCases = chief
@@ -37,7 +46,17 @@ function CasesContent() {
     : emergencyCases;
 
   const filteredAiCases = chief
-    ? aiCases.filter((c) => c.chiefComplaint === chief)
+    ? aiCases.filter((c) => {
+        const match = c.chiefComplaint === chief;
+        if (!match) {
+          console.log(
+            "[CasesPage] filter miss — case:", c.id,
+            "chiefComplaint:", JSON.stringify(c.chiefComplaint),
+            "chief:", JSON.stringify(chief)
+          );
+        }
+        return match;
+      })
     : aiCases;
 
   const totalCount = presetCases.length + filteredAiCases.length;

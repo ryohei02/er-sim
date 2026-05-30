@@ -128,36 +128,62 @@ export async function getStats(): Promise<StatsResult> {
 
 export async function getAIGeneratedCases(): Promise<EmergencyCase[]> {
   try {
-    const { data, error } = await supabase.from("ai_cases").select("case_data");
-    if (error) { console.error("getAIGeneratedCases:", error); return []; }
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (data ?? []).map((row) => (row as any).case_data as EmergencyCase);
+    const { data, error } = await supabase
+      .from("ai_cases")
+      .select("id, case_data, chief_complaint");
+    if (error) { console.error("[getAIGeneratedCases] error:", error); return []; }
+    console.log("[getAIGeneratedCases] rows fetched:", data?.length ?? 0);
+    const cases = (data ?? [])
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .map((row: any) => {
+        const caseObj = row.case_data as EmergencyCase | null;
+        if (!caseObj) {
+          console.warn("[getAIGeneratedCases] null case_data for id:", row.id);
+          return null;
+        }
+        // Use the dedicated DB column as the authoritative chiefComplaint value.
+        // This guards against case_data storing a different/unexpected value.
+        if (row.chief_complaint && caseObj.chiefComplaint !== row.chief_complaint) {
+          console.warn(
+            "[getAIGeneratedCases] chiefComplaint mismatch — db:",
+            row.chief_complaint,
+            "case_data:",
+            caseObj.chiefComplaint,
+            "→ using db value"
+          );
+          caseObj.chiefComplaint = row.chief_complaint as EmergencyCase["chiefComplaint"];
+        }
+        return caseObj;
+      })
+      .filter((c): c is EmergencyCase => c !== null);
+    console.log("[getAIGeneratedCases] valid cases:", cases.length);
+    return cases;
   } catch (e) {
-    console.error("getAIGeneratedCases:", e);
+    console.error("[getAIGeneratedCases] exception:", e);
     return [];
   }
 }
 
 export async function saveAIGeneratedCase(c: EmergencyCase): Promise<void> {
-  console.log("[saveAIGeneratedCase] saving id:", c.id);
-  try {
-    const { error } = await supabase.from("ai_cases").upsert({
-      id: c.id,
-      title: c.title,
-      chief_complaint: c.chiefComplaint,
-      difficulty: c.difficulty,
-      disease_category: c.diseaseCategory,
-      final_diagnosis: c.finalDiagnosis,
-      case_data: c,
-    });
-    if (error) {
-      console.error("[saveAIGeneratedCase] error:", error);
-    } else {
-      console.log("[saveAIGeneratedCase] saved successfully:", c.id);
-    }
-  } catch (e) {
-    console.error("[saveAIGeneratedCase] exception:", e);
+  console.log(
+    "[saveAIGeneratedCase] saving id:", c.id,
+    "chiefComplaint:", c.chiefComplaint,
+    "difficulty:", c.difficulty
+  );
+  const { error } = await supabase.from("ai_cases").upsert({
+    id: c.id,
+    title: c.title,
+    chief_complaint: c.chiefComplaint,
+    difficulty: c.difficulty,
+    disease_category: c.diseaseCategory,
+    final_diagnosis: c.finalDiagnosis,
+    case_data: c,
+  });
+  if (error) {
+    console.error("[saveAIGeneratedCase] upsert error:", error);
+    throw new Error(`症例の保存に失敗しました: ${error.message}`);
   }
+  console.log("[saveAIGeneratedCase] saved successfully:", c.id);
 }
 
 export async function getAIGeneratedCaseById(id: string): Promise<EmergencyCase | null> {

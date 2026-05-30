@@ -16,7 +16,7 @@ const SYSTEM_PROMPT = `あなたは救急医学教育の専門家です。耳鼻
 {
   id: string,          // "ai-" + タイムスタンプ
   title: string,
-  chiefComplaint: "胸痛"|"腹痛"|"発熱"|"呼吸困難"|"意識障害"|"頭痛"|"めまい"|"動悸"|"失神"|"耳鼻科救急"|"その他",
+  chiefComplaint: "胸痛"|"腹痛"|"発熱"|"呼吸困難"|"意識障害"|"頭痛"|"めまい"|"動悸"|"失神"|"耳鼻科救急"|"腰背部痛"|"麻痺・しびれ"|"浮腫"|"嘔吐・下痢"|"痙攣"|"皮疹"|"精神科的主訴"|"その他"|"CPA"|"骨折・外傷",
   difficulty: "初級"|"中級"|"実戦"|"地雷",
   diseaseCategory: string,
   finalDiagnosis: string,

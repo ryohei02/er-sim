@@ -49,10 +49,15 @@ export default function TopPage() {
     setNewlyGeneratedCase(null);
     try {
       const c = await generateCaseWithAI(aiComplaint, aiDifficulty);
+      console.log("[handleGenerateAI] generated:", c.id, "chiefComplaint:", c.chiefComplaint);
+      // saveAIGeneratedCase throws on failure — error surfaces in UI
       await saveAIGeneratedCase(c);
       const updated = await getAIGeneratedCases();
       setAiCases(updated);
-      setNewlyGeneratedCase(c);
+      // Use the saved-and-retrieved case so chiefComplaint matches what's in DB
+      const saved = updated.find((x) => x.id === c.id) ?? c;
+      console.log("[handleGenerateAI] using saved case chiefComplaint:", saved.chiefComplaint);
+      setNewlyGeneratedCase(saved);
     } catch (e) {
       setAiError(e instanceof Error ? e.message : "生成に失敗しました");
     } finally {
