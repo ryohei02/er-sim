@@ -18,7 +18,9 @@ export type ChiefComplaint =
   | "痙攣"
   | "皮疹"
   | "精神科的主訴"
-  | "その他";
+  | "その他"
+  | "CPA"
+  | "骨折・外傷";
 
 export type EmergencyCase = {
   id: string;

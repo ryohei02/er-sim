@@ -49,6 +49,8 @@ export default function CasePage() {
     reflection: "",
   });
   const [rating, setRating] = useState<SelfRating | null>(null);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
     console.log("[CasePage] id from URL params:", id);
@@ -121,6 +123,18 @@ export default function CasePage() {
         </div>
       </div>
     );
+  }
+
+  function showToastMsg(msg: string) {
+    setToast(msg);
+    setTimeout(() => setToast(null), 2500);
+  }
+
+  async function handleQuickSave(r: SelfRating) {
+    setShowRatingModal(false);
+    setRating(r);
+    await saveRecord(id, r, memos, caseData?.metadata.tags ?? []);
+    showToastMsg("保存しました");
   }
 
   function toggleCheck(item: string) {
@@ -252,6 +266,21 @@ export default function CasePage() {
                 onChange={(v) => setMemos((m) => ({ ...m, step1Tests: v }))}
               />
             </Section>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => downloadCaseAsText(caseData)}
+                className="flex-1 rounded-xl border border-blue-600 bg-blue-950/30 hover:bg-blue-950/60 transition-colors px-4 py-3 text-sm font-semibold text-blue-300 flex items-center justify-center gap-2"
+              >
+                <span>📄</span> 症例をテキスト保存
+              </button>
+              <button
+                onClick={() => setShowRatingModal(true)}
+                className="flex-1 rounded-xl border border-emerald-600 bg-emerald-950/30 hover:bg-emerald-950/60 transition-colors px-4 py-3 text-sm font-semibold text-emerald-300 flex items-center justify-center gap-2"
+              >
+                <span>💾</span> 学習記録に保存
+              </button>
+            </div>
 
             <NextButton onClick={() => setStep(2)} label="Step 2 へ：救急医の思考と検査結果" />
           </>
@@ -499,6 +528,55 @@ export default function CasePage() {
           </>
         )}
       </main>
+
+      {/* Rating modal */}
+      {showRatingModal && (
+        <div
+          className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
+          onClick={() => setShowRatingModal(false)}
+        >
+          <div
+            className="bg-slate-800 border border-slate-600 rounded-2xl p-6 w-full max-w-sm space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-base font-bold text-slate-100 text-center">学習記録に保存</h3>
+            <p className="text-xs text-slate-400 text-center">この症例の理解度を選択してください</p>
+            <div className="space-y-2">
+              <button
+                onClick={() => handleQuickSave("A")}
+                className="w-full rounded-xl border border-green-600 bg-green-950/40 hover:bg-green-900/50 transition-colors px-4 py-3 text-sm font-semibold text-green-300 text-left"
+              >
+                A：よく理解できた
+              </button>
+              <button
+                onClick={() => handleQuickSave("B")}
+                className="w-full rounded-xl border border-yellow-600 bg-yellow-950/40 hover:bg-yellow-900/50 transition-colors px-4 py-3 text-sm font-semibold text-yellow-300 text-left"
+              >
+                B：だいたい理解できた
+              </button>
+              <button
+                onClick={() => handleQuickSave("C")}
+                className="w-full rounded-xl border border-red-600 bg-red-950/40 hover:bg-red-900/50 transition-colors px-4 py-3 text-sm font-semibold text-red-300 text-left"
+              >
+                C：復習が必要
+              </button>
+            </div>
+            <button
+              onClick={() => setShowRatingModal(false)}
+              className="w-full text-xs text-slate-500 hover:text-slate-300 py-1"
+            >
+              キャンセル
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Toast */}
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-700 border border-slate-500 text-slate-100 text-sm px-5 py-2.5 rounded-full shadow-lg pointer-events-none">
+          {toast}
+        </div>
+      )}
     </div>
   );
 }

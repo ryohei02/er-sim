@@ -14,6 +14,7 @@ const complaints: ChiefComplaint[] = [
   "頭痛", "めまい", "動悸", "失神", "耳鼻科救急",
   "腰背部痛", "麻痺・しびれ", "浮腫", "嘔吐・下痢",
   "痙攣", "皮疹", "精神科的主訴", "その他",
+  "CPA", "骨折・外傷",
 ];
 
 const difficulties: Difficulty[] = ["初級", "中級", "実戦", "地雷"];
@@ -23,14 +24,9 @@ const complaintEmoji: Record<string, string> = {
   頭痛: "😵", めまい: "🌀", 動悸: "💓", 失神: "😵‍💫", 耳鼻科救急: "🟡",
   腰背部痛: "🔴", "麻痺・しびれ": "🧠", 浮腫: "💧", "嘔吐・下痢": "🤢",
   痙攣: "⚡", 皮疹: "🔴", 精神科的主訴: "💬", その他: "❓",
+  CPA: "🫀", "骨折・外傷": "🦴",
 };
 
-const difficultyBadgeColor: Record<string, string> = {
-  初級: "border-green-700 text-green-400",
-  中級: "border-blue-700 text-blue-400",
-  実戦: "border-orange-700 text-orange-400",
-  地雷: "border-red-700 text-red-400",
-};
 
 export default function TopPage() {
   const router = useRouter();
@@ -219,56 +215,13 @@ export default function TopPage() {
                 >
                   <span>🗑️</span> 削除する
                 </button>
-              </div>
-            </div>
-          )}
-
-          {/* AI cases list */}
-          {aiCases.length > 0 && (
-            <div className="space-y-3">
-              <div className="text-xs font-semibold text-slate-400 uppercase tracking-wide">
-                生成済みAI症例（{aiCases.length}件）
-              </div>
-              {aiCases.map((c) => (
-                <div
-                  key={c.id}
-                  className="rounded-xl border border-slate-700 bg-slate-800/60 p-3 space-y-2"
+                <Link
+                  href={`/cases?chief=${encodeURIComponent(newlyGeneratedCase.chiefComplaint)}`}
+                  className="text-center text-xs text-purple-400 hover:text-purple-300 underline underline-offset-2 py-1"
                 >
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">{complaintEmoji[c.chiefComplaint] ?? "📋"}</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-sm font-medium text-slate-200 truncate">{c.title}</span>
-                        <span className="text-xs rounded-full px-1.5 py-0.5 bg-purple-900/50 border border-purple-700 text-purple-300 flex-shrink-0">🤖 AI</span>
-                      </div>
-                      <div className="text-xs text-slate-500 truncate">{c.finalDiagnosis}</div>
-                    </div>
-                    <span className={`rounded-full text-xs px-2 py-0.5 border flex-shrink-0 ${difficultyBadgeColor[c.difficulty] ?? "border-slate-700 text-slate-400"}`}>
-                      {c.difficulty}
-                    </span>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => router.push(`/case/${c.id}`)}
-                      className="flex-1 rounded-lg bg-slate-700 hover:bg-slate-600 transition-colors px-3 py-2 text-xs font-semibold text-white flex items-center justify-center gap-1"
-                    >
-                      <span>▶</span> 始める
-                    </button>
-                    <button
-                      onClick={() => downloadCaseAsText(c)}
-                      className="flex-1 rounded-lg border border-blue-700 bg-blue-950/30 hover:bg-blue-950/60 transition-colors px-3 py-2 text-xs font-semibold text-blue-300 flex items-center justify-center gap-1"
-                    >
-                      <span>📄</span> DL
-                    </button>
-                    <button
-                      onClick={() => handleDeleteAICase(c.id)}
-                      className="flex-1 rounded-lg border border-red-800 bg-red-950/20 hover:bg-red-950/40 transition-colors px-3 py-2 text-xs font-semibold text-red-400 flex items-center justify-center gap-1"
-                    >
-                      <span>🗑️</span> 削除
-                    </button>
-                  </div>
-                </div>
-              ))}
+                  {newlyGeneratedCase.chiefComplaint}の主訴ページで確認する →
+                </Link>
+              </div>
             </div>
           )}
         </div>
