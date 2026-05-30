@@ -127,6 +127,7 @@ export default function TopPage() {
           <div className="rounded-xl border border-slate-700 overflow-hidden divide-y divide-slate-700/60">
             {complaints.map((complaint) => {
               const count = emergencyCases.filter((c) => c.chiefComplaint === complaint).length;
+              const aiCount = aiCases.filter((c) => c.chiefComplaint === complaint).length;
               return (
                 <Link
                   key={complaint}
@@ -135,7 +136,9 @@ export default function TopPage() {
                 >
                   <span className="text-xl mr-3">{complaintEmoji[complaint] ?? "📋"}</span>
                   <span className="flex-1 text-sm font-medium text-slate-200">{complaint}</span>
-                  <span className="text-xs text-slate-400 mr-3">プリセット{count}件</span>
+                  <span className="text-xs text-slate-400 mr-3">
+                    プリセット{count}件{aiCount > 0 ? ` + AI${aiCount}件` : ""}
+                  </span>
                   <span className="text-slate-500 text-sm">›</span>
                 </Link>
               );
