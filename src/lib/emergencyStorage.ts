@@ -2,7 +2,7 @@ import { supabase } from "./supabase";
 import type { CaseLearningRecord, EmergencyCase, SelfRating } from "@/types/emergency";
 
 function nextReviewDate(rating: SelfRating): string {
-  const days = rating === "A" ? 7 : rating === "B" ? 3 : 1;
+  const days = rating === "A" ? 30 : rating === "B" ? 7 : 1;
   const d = new Date();
   d.setDate(d.getDate() + days);
   return d.toISOString();

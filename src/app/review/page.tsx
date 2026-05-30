@@ -21,6 +21,8 @@ export default function ReviewPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  const todayStr = new Date().toISOString().slice(0, 10);
+
   const filteredRecords = records.filter((r) => {
     const caseData = emergencyCases.find((c) => c.id === r.caseId);
     if (!caseData) return false;
@@ -29,10 +31,19 @@ export default function ReviewPage() {
     return true;
   });
 
-  const sortedRecords = [...filteredRecords].sort((a, b) => {
-    const order = { C: 0, B: 1, A: 2 };
-    return order[a.rating] - order[b.rating];
-  });
+  const ratingOrder = { C: 0, B: 1, A: 2 };
+  const isDue = (r: CaseLearningRecord) =>
+    !r.review.nextReviewAt || r.review.nextReviewAt.slice(0, 10) <= todayStr;
+
+  const dueRecords = [...filteredRecords]
+    .filter(isDue)
+    .sort((a, b) => ratingOrder[a.rating] - ratingOrder[b.rating]);
+
+  const notDueRecords = [...filteredRecords]
+    .filter((r) => !isDue(r))
+    .sort((a, b) => ratingOrder[a.rating] - ratingOrder[b.rating]);
+
+  const sortedRecords = [...dueRecords, ...notDueRecords];
 
   const cCount = records.filter((r) => r.rating === "C").length;
 
@@ -60,8 +71,8 @@ export default function ReviewPage() {
             {/* Summary */}
             <div className="grid grid-cols-3 gap-3">
               <StatBadge label="学習済み" value={records.length} color="text-slate-200" />
+              <StatBadge label="本日期限" value={dueRecords.length} color="text-orange-400" />
               <StatBadge label="要復習 C" value={cCount} color="text-red-400" />
-              <StatBadge label="表示中" value={sortedRecords.length} color="text-blue-400" />
             </div>
 
             {/* Filter */}
@@ -90,21 +101,46 @@ export default function ReviewPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {cCount > 0 && ratingFilter === "all" && (
-                  <div className="rounded-xl border border-red-700 bg-red-950/30 px-4 py-3 flex items-center gap-2">
-                    <span className="text-red-400 font-bold">⚠</span>
-                    <p className="text-sm text-red-300">
-                      要復習（C）が<span className="font-bold">{cCount}件</span>あります。先に取り組みましょう。
-                    </p>
+                {/* 本日復習すべき症例 */}
+                {dueRecords.length > 0 && (
+                  <>
+                    <div className="rounded-xl border border-orange-700 bg-orange-950/30 px-4 py-3 flex items-center gap-2">
+                      <span className="text-orange-400 font-bold">📅</span>
+                      <p className="text-sm text-orange-300">
+                        本日復習すべき症例が<span className="font-bold">{dueRecords.length}件</span>あります。
+                        {cCount > 0 && <span className="ml-1">うちC評価 {cCount}件。</span>}
+                      </p>
+                    </div>
+                    {dueRecords.map((record) => {
+                      const caseData = emergencyCases.find((c) => c.id === record.caseId);
+                      if (!caseData) return null;
+                      return <CaseCard key={record.id} caseData={caseData} record={record} />;
+                    })}
+                  </>
+                )}
+
+                {/* 期限前の症例 */}
+                {notDueRecords.length > 0 && (
+                  <>
+                    {dueRecords.length > 0 && (
+                      <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide pt-2">
+                        次回復習まで期間あり
+                      </p>
+                    )}
+                    {notDueRecords.map((record) => {
+                      const caseData = emergencyCases.find((c) => c.id === record.caseId);
+                      if (!caseData) return null;
+                      return <CaseCard key={record.id} caseData={caseData} record={record} />;
+                    })}
+                  </>
+                )}
+
+                {dueRecords.length === 0 && notDueRecords.length > 0 && (
+                  <div className="rounded-xl border border-green-800 bg-green-950/20 px-4 py-3 flex items-center gap-2">
+                    <span className="text-green-400">✓</span>
+                    <p className="text-sm text-green-300">本日の復習はすべて完了しています。</p>
                   </div>
                 )}
-                {sortedRecords.map((record) => {
-                  const caseData = emergencyCases.find((c) => c.id === record.caseId);
-                  if (!caseData) return null;
-                  return (
-                    <CaseCard key={record.id} caseData={caseData} record={record} />
-                  );
-                })}
               </div>
             )}
 
