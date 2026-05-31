@@ -1,5 +1,6 @@
 export type SelfRating = "A" | "B" | "C";
 export type Difficulty = "初級" | "中級" | "実戦" | "地雷";
+export type Frequency = "高" | "中" | "低";
 export type ChiefComplaint =
   | "胸痛"
   | "腹痛"
@@ -20,13 +21,18 @@ export type ChiefComplaint =
   | "精神科的主訴"
   | "その他"
   | "CPA"
-  | "骨折・外傷";
+  | "骨折・外傷"
+  | "泌尿器"
+  | "咳・喀血"
+  | "外傷・頭部打撲"
+  | "薬物中毒・過量服薬";
 
 export type EmergencyCase = {
   id: string;
   title: string;
   chiefComplaint: ChiefComplaint;
   difficulty: Difficulty;
+  frequency: Frequency;
   diseaseCategory: string;
   finalDiagnosis: string;
   step1: {

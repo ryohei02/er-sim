@@ -13,6 +13,7 @@ const complaintEmoji: Record<string, string> = {
   腰背部痛: "🔴", "麻痺・しびれ": "🧠", 浮腫: "💧", "嘔吐・下痢": "🤢",
   痙攣: "⚡", 皮疹: "🔴", 精神科的主訴: "💬", その他: "❓",
   CPA: "🫀", "骨折・外傷": "🦴",
+  泌尿器: "🫘", "咳・喀血": "🩸", "外傷・頭部打撲": "🪖", "薬物中毒・過量服薬": "💊",
 };
 
 const difficultyBadgeColor: Record<string, string> = {
@@ -20,6 +21,12 @@ const difficultyBadgeColor: Record<string, string> = {
   中級: "border-blue-700 text-blue-400",
   実戦: "border-orange-700 text-orange-400",
   地雷: "border-red-700 text-red-400",
+};
+
+const frequencyBadgeStyle: Record<string, string> = {
+  高: "border-emerald-700 text-emerald-400",
+  中: "border-yellow-700 text-yellow-400",
+  低: "border-slate-600 text-slate-500",
 };
 
 function CasesContent() {
@@ -111,7 +118,12 @@ function CasesContent() {
                       </div>
                       <div className="text-xs text-slate-500 truncate">{c.finalDiagnosis}</div>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      {"frequency" in c && c.frequency && (
+                        <span className={`rounded-full text-xs px-2 py-0.5 border ${frequencyBadgeStyle[c.frequency as string] ?? "border-slate-600 text-slate-500"}`}>
+                          {c.frequency}
+                        </span>
+                      )}
                       <span
                         className={`rounded-full text-xs px-2 py-0.5 border ${difficultyBadgeColor[c.difficulty] ?? "border-slate-700 text-slate-400"}`}
                       >
@@ -144,7 +156,12 @@ function CasesContent() {
                       </div>
                       <div className="text-xs text-slate-500 truncate">{c.finalDiagnosis}</div>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      {"frequency" in c && c.frequency && (
+                        <span className={`rounded-full text-xs px-2 py-0.5 border ${frequencyBadgeStyle[c.frequency as string] ?? "border-slate-600 text-slate-500"}`}>
+                          {c.frequency}
+                        </span>
+                      )}
                       <span
                         className={`rounded-full text-xs px-2 py-0.5 border ${difficultyBadgeColor[c.difficulty] ?? "border-slate-700 text-slate-400"}`}
                       >
