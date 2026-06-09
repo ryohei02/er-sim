@@ -25,7 +25,8 @@ export type ChiefComplaint =
   | "泌尿器"
   | "咳・喀血"
   | "外傷・頭部打撲"
-  | "薬物中毒・過量服薬";
+  | "薬物中毒・過量服薬"
+  | "吐血・下血";
 
 export type EmergencyCase = {
   id: string;
