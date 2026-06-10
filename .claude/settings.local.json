@@ -5,7 +5,9 @@
       "Bash(npm run *)",
       "Bash(Select-String -Path \"C:\\\\Users\\\\life_\\\\Documents\\\\救急当直アプリ\\\\er-sim\\\\src\\\\data\\\\emergencyCases.ts\" -Pattern \"id: .case-\")",
       "Bash(Select-Object -Last 5)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
     ]
   }
 }
